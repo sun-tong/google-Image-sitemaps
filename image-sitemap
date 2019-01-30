@@ -1,0 +1,49 @@
+<?php
+require_once 'app/Mage.php';
+Mage::app();
+
+$modifyAttributeIds = array('65','68');
+$_collection2 = Mage::getModel('catalog/product')->getCollection()
+				->addAttributeToFilter('attribute_set_id', array('in' => $modifyAttributeIds))
+				->addAttributeToFilter('status', 1)
+				->addAttributeToFilter('visibility', 4);	
+$num = 1000;
+$lastPage = ceil(count($_collection2)/$num);
+for($i=1;$i<=$lastPage;$i++) {	
+	$_collection = Mage::getModel('catalog/product')->getCollection()
+				->setOrder('entity_id', 'desc')
+				->addAttributeToFilter('attribute_set_id', array('in' => $modifyAttributeIds))
+				->addAttributeToSelect('image')
+				->addAttributeToFilter('status', 1)
+				->addAttributeToFilter('visibility', 4)
+				->setPageSize($num)
+			    ->setCurPage($i);
+	
+	$xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>
+	<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+			xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">';
+
+	$xmlEnd = '</urlset>';	
+		
+	$xml = "";
+	$fileName = "sitemap-images-".$i.".xml";
+	if (file_exists($fileName)) {
+		unlink($fileName);
+	}
+	$file = fopen($fileName,'a');
+		$xml = $xmlHeader;
+		foreach ($_collection as $product){		
+			$image = Mage::getBaseUrl().'media/catalog/product'.$product->getImage();
+			$xml .= "<url>";
+			$xml .= "<loc>".$product->getProductUrl()."</loc>";
+			$xml .= "<image:image><image:loc>".$image."</image:loc></image:image>";
+			$xml .= "</url>";
+		}	
+		$xml .= $xmlEnd;	
+		fwrite($file, $xml);
+	fclose($file);
+}
+
+echo 'Over';
+
+
